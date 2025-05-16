@@ -1,0 +1,7 @@
+mqtt:
+  host: a8830ed88b924dc7a2f1cad55c9710d7.s1.eu.hivemq.cloud
+  port: 8883
+  username: smart_farm_sub
+  password: Smart_farm_sub1
+  client-id: smart_farm_sub_1
+  topic: my/test/topic
