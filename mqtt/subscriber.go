@@ -5,12 +5,15 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"log"
+	"sync"
 	"time"
 )
 
 type MqttSubscriberService struct {
-	client mqtt.Client
-	cfg    *MqttConfig
+	client        mqtt.Client
+	cfg           *MqttConfig
+	mu            sync.RWMutex
+	latestMessage []byte
 }
 
 func NewMqttSubscriberService(cfg *MqttConfig) *MqttSubscriberService {
@@ -58,6 +61,11 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 	payload := msg.Payload()
 	log.Printf("📥 Received message: %s -> %s", msg.Topic(), string(payload))
 
+	s.mu.Lock()
+	s.latestMessage = make([]byte, len(payload))
+	copy(s.latestMessage, payload)
+	s.mu.Unlock()
+
 	//var dto models.MoistureSensorDTO
 	//err := json.Unmarshal(payload, &dto)
 	//if err != nil {
@@ -71,4 +79,18 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 	//} else {
 	//	log.Println("✅ Moisture value saved to DB")
 	//}
+}
+
+// temporary method
+func (s *MqttSubscriberService) GetLatestMessage() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.latestMessage == nil {
+		return nil
+	}
+	// Return a copy for safety
+	msgCopy := make([]byte, len(s.latestMessage))
+	copy(msgCopy, s.latestMessage)
+	return msgCopy
 }
