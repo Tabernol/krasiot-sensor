@@ -42,9 +42,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: |
-            app
-            .env
+          source: "app"
           target: "~/go-app"
 
       - name: Restart app on VM
@@ -56,5 +54,11 @@ jobs:
           script: |
             pkill app || true
             cd ~/go-app
+            export MQTT_HOST=${{ secrets.MQTT_HOST }}
+            export MQTT_PORT=${{ secrets.MQTT_PORT }}
+            export MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}
+            export MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+            export MQTT_CLIENT_ID=${{ secrets.MQTT_CLIENT_ID }}
+            export MQTT_TOPIC=${{ secrets.MQTT_TOPIC }}
             nohup ./app > app.log 2>&1 &
-            echo "✅ App restarted on VM."
+            echo "App restarted with environment variables."
