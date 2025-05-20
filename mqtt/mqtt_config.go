@@ -1,7 +1,10 @@
 package mqtt
 
 import (
-	"github.com/spf13/viper"
+	"github.com/joho/godotenv"
+	"log"
+	"os"
+	"strconv"
 )
 
 type MqttConfig struct {
@@ -14,15 +17,23 @@ type MqttConfig struct {
 }
 
 func LoadMqttConfig() (*MqttConfig, error) {
-	viper.SetConfigName("application") // application.yaml
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".") // current dir
+	// Load from .env file if it exists
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env file not found, using environment variables")
+	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	// Parse env variables
+	port, err := strconv.Atoi(os.Getenv("MQTT_PORT"))
+	if err != nil {
 		return nil, err
 	}
 
-	var config MqttConfig
-	err := viper.Sub("mqtt").Unmarshal(&config)
-	return &config, err
+	return &MqttConfig{
+		Host:     os.Getenv("MQTT_HOST"),
+		Port:     port,
+		Username: os.Getenv("MQTT_USERNAME"),
+		Password: os.Getenv("MQTT_PASSWORD"),
+		ClientID: os.Getenv("MQTT_CLIENT_ID"),
+		Topic:    os.Getenv("MQTT_TOPIC"),
+	}, nil
 }
