@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "app"
-          target: "~/go-app"
+          target: "~/app"
 
       - name: Restart app on VM
         uses: appleboy/ssh-action@v1.0.3
