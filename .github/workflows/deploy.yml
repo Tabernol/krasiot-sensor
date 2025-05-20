@@ -1,0 +1,60 @@
+name: Deploy to OCI VM
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.3'
+
+      - name: Build Linux ARM64 binary
+        run: |
+          export GOOS=linux
+          export GOARCH=arm64
+          go build -o app
+          echo "✅ Binary built for Linux ARM64."
+
+      - name: Create .env file for deployment
+        run: |
+          cat <<EOF > .env
+          MQTT_HOST=${{ secrets.MQTT_HOST }}
+          MQTT_PORT=${{ secrets.MQTT_PORT }}
+          MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}
+          MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+          MQTT_CLIENT_ID=${{ secrets.MQTT_CLIENT_ID }}
+          MQTT_TOPIC=${{ secrets.MQTT_TOPIC }}
+          EOF
+          echo "✅ .env file created."
+
+      - name: Copy binary and .env to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: |
+            app
+            .env
+          target: "~/go-app"
+
+      - name: Restart app on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pkill app || true
+            cd ~/go-app
+            nohup ./app > app.log 2>&1 &
+            echo "✅ App restarted on VM."
