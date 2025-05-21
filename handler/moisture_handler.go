@@ -16,7 +16,7 @@ func NewMoistureHandler(sub *mqtt.MqttSubscriberService) *MoistureHandler {
 func (h *MoistureHandler) GetLatestMoisture(w http.ResponseWriter, r *http.Request) {
 	msg := h.subscriber.GetLatestMessage()
 	if msg == nil {
-		http.Error(w, "No moisture data available", http.StatusNotFound)
+		http.Error(w, "No moisture data available!!!!!!!", http.StatusNotFound)
 		return
 	}
 
