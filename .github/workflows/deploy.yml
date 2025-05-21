@@ -43,12 +43,6 @@ jobs:
             pkill app || true
             cd ~/krasiot-sensor
             chmod +x app
-#            export MQTT_HOST=${{ secrets.MQTT_HOST }}
-#            export MQTT_PORT=${{ secrets.MQTT_PORT }}
-#            export MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}
-#            export MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
-#            export MQTT_CLIENT_ID=${{ secrets.MQTT_CLIENT_ID }}
-#            export MQTT_TOPIC=${{ secrets.MQTT_TOPIC }}
             export MQTT_HOST='${{ secrets.MQTT_HOST }}'
             export MQTT_PORT='${{ secrets.MQTT_PORT }}'
             export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
