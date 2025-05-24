@@ -24,28 +24,14 @@ jobs:
           go build -o app
           echo "✅ Binary built for Linux ARM64."
 
-      - name: Create .env file for deployment
-        run: |
-          cat <<EOF > .env
-          MQTT_HOST=${{ secrets.MQTT_HOST }}
-          MQTT_PORT=${{ secrets.MQTT_PORT }}
-          MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}
-          MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
-          MQTT_CLIENT_ID=${{ secrets.MQTT_CLIENT_ID }}
-          MQTT_TOPIC=${{ secrets.MQTT_TOPIC }}
-          EOF
-          echo "✅ .env file created."
-
-      - name: Copy binary and .env to VM
+      - name: Copy binary to VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: |
-            app
-            .env
-          target: "~/go-app"
+          source: "app"
+          target: "~/krasiot-sensor"
 
       - name: Restart app on VM
         uses: appleboy/ssh-action@v1.0.3
@@ -55,6 +41,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             pkill app || true
-            cd ~/go-app
+            cd ~/krasiot-sensor
+            chmod +x app
+            export MQTT_HOST='${{ vars.MQTT_HOST }}'
+            export MQTT_PORT='${{ vars.MQTT_PORT }}'
+            export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
+            export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
+            export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
+            export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
+            echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
             nohup ./app > app.log 2>&1 &
-            echo "✅ App restarted on VM."
+            echo "✅ App started. Last 10 log lines:"
+            sleep 3
+            tail -n 10 app.log || echo "⚠️ Log file not found."
