@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/handler"
-	"github.com/Tabernol/krasiot-sensor/mqtt"
+	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
+	"github.com/Tabernol/krasiot-sensor/repository"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -11,13 +12,21 @@ import (
 
 func main() {
 	fmt.Println("Starting Krasiot Sensor Subscriber...")
-	cfg, err := mqtt.LoadMqttConfig()
+
+	cfg, err := mqtt_broker.LoadMqttConfig()
 	if err != nil {
 		log.Fatalf("❌ Failed to load config: %v", err)
 	}
 	fmt.Println(cfg)
 
-	subscriber := mqtt.NewMqttSubscriberService(cfg)
+	repo, err := repository.NewDynamoRepository("sensor_data_raw")
+	if err != nil {
+		log.Fatalf("❌ Failed to connect to DynamoDB: %v", err)
+	}
+
+	mqtt_broker.SetDynamoRepository(repo)
+
+	subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
 	go subscriber.ConnectAndSubscribe()
 
 	router := mux.NewRouter()

@@ -1,13 +1,22 @@
-package mqtt
+package mqtt_broker
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/Tabernol/krasiot-sensor/model"
+	"github.com/Tabernol/krasiot-sensor/repository"
+	"github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"sync"
 	"time"
 )
+
+var dynamoRepo *repository.DynamoRepository
+
+func SetDynamoRepository(repo *repository.DynamoRepository) {
+	dynamoRepo = repo
+}
 
 type MqttSubscriberService struct {
 	client        mqtt.Client
@@ -57,6 +66,30 @@ func (s *MqttSubscriberService) ConnectAndSubscribe() {
 	}
 }
 
+//func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Message) {
+//	payload := msg.Payload()
+//	log.Printf("📥 Received message: %s -> %s", msg.Topic(), string(payload))
+//
+//	s.mu.Lock()
+//	s.latestMessage = make([]byte, len(payload))
+//	copy(s.latestMessage, payload)
+//	s.mu.Unlock()
+//
+//	//var dto models.MoistureSensorDTO
+//	//err := json.Unmarshal(payload, &dto)
+//	//if err != nil {
+//	//	log.Printf("❌ Failed to unmarshal message: %v", err)
+//	//	return
+//	//}
+//	//
+//	////err = services.SaveMoisture(dto)
+//	//if err != nil {
+//	//	log.Printf("❌ Failed to save moisture data: %v", err)
+//	//} else {
+//	//	log.Println("✅ Moisture value saved to DB")
+//	//}
+//}
+
 func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Message) {
 	payload := msg.Payload()
 	log.Printf("📥 Received message: %s -> %s", msg.Topic(), string(payload))
@@ -66,19 +99,20 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 	copy(s.latestMessage, payload)
 	s.mu.Unlock()
 
-	//var dto models.MoistureSensorDTO
-	//err := json.Unmarshal(payload, &dto)
-	//if err != nil {
-	//	log.Printf("❌ Failed to unmarshal message: %v", err)
-	//	return
-	//}
-	//
-	////err = services.SaveMoisture(dto)
-	//if err != nil {
-	//	log.Printf("❌ Failed to save moisture data: %v", err)
-	//} else {
-	//	log.Println("✅ Moisture value saved to DB")
-	//}
+	var sensorData model.SensorData
+	err := json.Unmarshal(payload, &sensorData)
+	if err != nil {
+		log.Printf("❌ Failed to unmarshal message: %v", err)
+		return
+	}
+
+	if dynamoRepo != nil {
+		if err := dynamoRepo.SaveSensorData(sensorData); err != nil {
+			log.Printf("❌ Failed to save to DynamoDB: %v", err)
+		} else {
+			log.Println("✅ Sensor data saved to DynamoDB")
+		}
+	}
 }
 
 // temporary method
