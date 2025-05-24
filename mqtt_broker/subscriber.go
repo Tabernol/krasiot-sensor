@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/model"
 	"github.com/Tabernol/krasiot-sensor/repository"
+	"github.com/Tabernol/krasiot-sensor/service"
 	"github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"sync"
@@ -99,20 +100,30 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 	copy(s.latestMessage, payload)
 	s.mu.Unlock()
 
-	var sensorData model.SensorData
-	err := json.Unmarshal(payload, &sensorData)
+	var rawData model.SensorData
+	err := json.Unmarshal(payload, &rawData)
 	if err != nil {
 		log.Printf("❌ Failed to unmarshal message: %v", err)
 		return
 	}
 
+	enriched := sensor_service.EnrichSensorData(rawData)
+
 	if dynamoRepo != nil {
-		if err := dynamoRepo.SaveSensorData(sensorData); err != nil {
+		if err := dynamoRepo.SaveSensorData(enriched); err != nil {
 			log.Printf("❌ Failed to save to DynamoDB: %v", err)
 		} else {
 			log.Println("✅ Sensor data saved to DynamoDB")
 		}
 	}
+
+	//if dynamoRepo != nil {
+	//	if err := dynamoRepo.SaveSensorData(sensorData); err != nil {
+	//		log.Printf("❌ Failed to save to DynamoDB: %v", err)
+	//	} else {
+	//		log.Println("✅ Sensor data saved to DynamoDB")
+	//	}
+	//}
 }
 
 // temporary method
