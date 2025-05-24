@@ -28,19 +28,44 @@ func NewDynamoRepository(tableName string) (*DynamoRepository, error) {
 	}, nil
 }
 
-func (r *DynamoRepository) SaveSensorData(data model.SensorData) error {
+//func (r *DynamoRepository) SaveSensorData(data model.SensorData) error {
+//	item := map[string]types.AttributeValue{
+//		"device_id":        &types.AttributeValueMemberS{Value: data.DeviceID},
+//		"timestamp_utc":    &types.AttributeValueMemberS{Value: data.TimestampUTC},
+//		"ip":               &types.AttributeValueMemberS{Value: data.IP},
+//		"firmware_version": &types.AttributeValueMemberS{Value: data.FirmwareVersion},
+//		"adc_resolution":   &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.ADCResolution)},
+//		"battery_voltage":  &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", data.BatteryVoltage)},
+//		"soil_moisture":    &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.SoilMoisture)},
+//	}
+//
+//	input := &dynamodb.PutItemInput{
+//		TableName: aws.String(r.tableName), // or hardcode table name for testing
+//		Item:      item,
+//	}
+//
+//	_, err := r.client.PutItem(context.TODO(), input)
+//	if err != nil {
+//		return fmt.Errorf("failed to put item: %w", err)
+//	}
+//	return nil
+//}
+
+func (r *DynamoRepository) SaveSensorData(data model.EnrichedSensorData) error {
 	item := map[string]types.AttributeValue{
-		"device_id":        &types.AttributeValueMemberS{Value: data.DeviceID},
-		"timestamp_utc":    &types.AttributeValueMemberS{Value: data.TimestampUTC},
-		"ip":               &types.AttributeValueMemberS{Value: data.IP},
-		"firmware_version": &types.AttributeValueMemberS{Value: data.FirmwareVersion},
-		"adc_resolution":   &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.ADCResolution)},
-		"battery_voltage":  &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", data.BatteryVoltage)},
-		"soil_moisture":    &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.SoilMoisture)},
+		"device_id":         &types.AttributeValueMemberS{Value: data.DeviceID},
+		"timestamp_utc":     &types.AttributeValueMemberS{Value: data.TimestampUTC},
+		"ip":                &types.AttributeValueMemberS{Value: data.IP},
+		"firmware_version":  &types.AttributeValueMemberS{Value: data.FirmwareVersion},
+		"adc_resolution":    &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.ADCResolution)},
+		"battery_voltage":   &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", data.BatteryVoltage)},
+		"soil_moisture":     &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.SoilMoisture)},
+		"moisture_percent":  &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.MoisturePercent)},
+		"moisture_category": &types.AttributeValueMemberS{Value: string(data.MoistureCategory)},
 	}
 
 	input := &dynamodb.PutItemInput{
-		TableName: aws.String(r.tableName), // or hardcode table name for testing
+		TableName: aws.String(r.tableName),
 		Item:      item,
 	}
 
