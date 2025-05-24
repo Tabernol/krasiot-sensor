@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"github.com/Tabernol/krasiot-sensor/mqtt"
+	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
 	"net/http"
 )
 
 type MoistureHandler struct {
-	subscriber *mqtt.MqttSubscriberService
+	subscriber *mqtt_broker.MqttSubscriberService
 }
 
-func NewMoistureHandler(sub *mqtt.MqttSubscriberService) *MoistureHandler {
+func NewMoistureHandler(sub *mqtt_broker.MqttSubscriberService) *MoistureHandler {
 	return &MoistureHandler{subscriber: sub}
 }
 
