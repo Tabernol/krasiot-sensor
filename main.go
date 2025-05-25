@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/handler"
 	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
-	"github.com/Tabernol/krasiot-sensor/repository"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -19,13 +18,13 @@ func main() {
 	}
 	//fmt.Println(cfg)
 
-	adbCfg, err := repository.LoadDBConfig()
-	if err != nil {
-		log.Fatalf("❌ Failed to load ADB config: %v", err)
-	}
-	fmt.Println("==================")
-	fmt.Println(adbCfg.Username)
-	fmt.Println("==================")
+	//adbCfg, err := repository.LoadDBConfig()
+	//if err != nil {
+	//	log.Fatalf("❌ Failed to load ADB config: %v", err)
+	//}
+	//fmt.Println("==================")
+	//fmt.Println(adbCfg.Username)
+	//fmt.Println("==================")
 
 	//oracleRepo, err := repository.NewOracleRepository("ADMIN", "Ironbike=3862", "https://G34BA1A39372B52-KRASIOT.adb.us-phoenix-1.oraclecloudapps.com/ords/apex")
 	//if err != nil {
