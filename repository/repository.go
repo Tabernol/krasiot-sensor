@@ -1,77 +1,67 @@
 package repository
 
-import (
-	"context"
-	"fmt"
-	"github.com/Tabernol/krasiot-sensor/model"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-)
-
-type DynamoRepository struct {
-	client    *dynamodb.Client
-	tableName string
-}
-
-func NewDynamoRepository(tableName string) (*DynamoRepository, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-central-1"))
-	if err != nil {
-		return nil, fmt.Errorf("unable to load SDK config, %v", err)
-	}
-
-	client := dynamodb.NewFromConfig(cfg)
-	return &DynamoRepository{
-		client:    client,
-		tableName: tableName,
-	}, nil
-}
-
-//func (r *DynamoRepository) SaveSensorData(data model.SensorData) error {
-//	item := map[string]types.AttributeValue{
-//		"device_id":        &types.AttributeValueMemberS{Value: data.DeviceID},
-//		"timestamp_utc":    &types.AttributeValueMemberS{Value: data.TimestampUTC},
-//		"ip":               &types.AttributeValueMemberS{Value: data.IP},
-//		"firmware_version": &types.AttributeValueMemberS{Value: data.FirmwareVersion},
-//		"adc_resolution":   &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.ADCResolution)},
-//		"battery_voltage":  &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", data.BatteryVoltage)},
-//		"soil_moisture":    &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.SoilMoisture)},
-//	}
 //
-//	input := &dynamodb.PutItemInput{
-//		TableName: aws.String(r.tableName), // or hardcode table name for testing
-//		Item:      item,
-//	}
+//import (
+//	"database/sql"
+//	"fmt"
+//	"github.com/Tabernol/krasiot-sensor/model"
+//	"github.com/godror/godror"
+//)
 //
-//	_, err := r.client.PutItem(context.TODO(), input)
+//type OracleRepository struct {
+//	db *sql.DB
+//}
+//
+//func NewOracleRepository(username, password, connectString string) (*OracleRepository, error) {
+//	dsn := fmt.Sprintf(`user="%s" password="%s" connectString="%s"`, username, password, connectString)
+//
+//	db, err := sql.Open("godror", dsn)
 //	if err != nil {
-//		return fmt.Errorf("failed to put item: %w", err)
+//		return nil, fmt.Errorf("failed to connect to Oracle DB: %w", err)
+//	}
+//
+//	// Optional: ping to verify connection
+//	if err := db.Ping(); err != nil {
+//		return nil, fmt.Errorf("ping failed: %w", err)
+//	}
+//
+//	return &OracleRepository{db: db}, nil
+//}
+//
+//func (r *OracleRepository) SaveSensorData(data model.EnrichedSensorData) error {
+//	query := `
+//		INSERT INTO sensor_raw (
+//			timestamp_utc,
+//			device_id,
+//			ip,
+//			firmware_version,
+//			adc_resolution,
+//			battery_voltage,
+//			soil_moisture,
+//			moisture_category,
+//			moisture_percent
+//		)
+//		VALUES (
+//			TO_TIMESTAMP_TZ(:1, 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM'),
+//			:2, :3, :4, :5, :6, :7, :8, :9
+//		)
+//	`
+//
+//	_, err := r.db.Exec(
+//		query,
+//		data.TimestampUTC,
+//		data.DeviceID,
+//		data.IP,
+//		data.FirmwareVersion,
+//		data.ADCResolution,
+//		data.BatteryVoltage,
+//		data.SoilMoisture,
+//		data.MoistureCategory,
+//		data.MoisturePercent,
+//	)
+//
+//	if err != nil {
+//		return fmt.Errorf("failed to insert sensor data: %w", err)
 //	}
 //	return nil
 //}
-
-func (r *DynamoRepository) SaveSensorData(data model.EnrichedSensorData) error {
-	item := map[string]types.AttributeValue{
-		"device_id":         &types.AttributeValueMemberS{Value: data.DeviceID},
-		"timestamp_utc":     &types.AttributeValueMemberS{Value: data.TimestampUTC},
-		"ip":                &types.AttributeValueMemberS{Value: data.IP},
-		"firmware_version":  &types.AttributeValueMemberS{Value: data.FirmwareVersion},
-		"adc_resolution":    &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.ADCResolution)},
-		"battery_voltage":   &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", data.BatteryVoltage)},
-		"soil_moisture":     &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.SoilMoisture)},
-		"moisture_percent":  &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", data.MoisturePercent)},
-		"moisture_category": &types.AttributeValueMemberS{Value: string(data.MoistureCategory)},
-	}
-
-	input := &dynamodb.PutItemInput{
-		TableName: aws.String(r.tableName),
-		Item:      item,
-	}
-
-	_, err := r.client.PutItem(context.TODO(), input)
-	if err != nil {
-		return fmt.Errorf("failed to put item: %w", err)
-	}
-	return nil
-}
