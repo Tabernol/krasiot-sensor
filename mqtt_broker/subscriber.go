@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/model"
+	sensor_service "github.com/Tabernol/krasiot-sensor/service"
 	"github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"sync"
 	"time"
 )
-
-//var oracleRepo *repository.OracleRepository
-//
-//func SetOracleRepository(repo *repository.OracleRepository) {
-//	oracleRepo = repo
-//}
 
 type MqttSubscriberService struct {
 	client        mqtt.Client
@@ -81,15 +76,9 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 
-	//enriched := sensor_service.EnrichSensorData(rawData)
-	//
-	//if oracleRepo != nil {
-	//	if err := oracleRepo.SaveSensorData(enriched); err != nil {
-	//		log.Printf("❌ Failed to save to Oracle DB: %v", err)
-	//	} else {
-	//		log.Println("✅ Sensor data saved to Oracle DB")
-	//	}
-	//}
+	enriched := sensor_service.EnrichSensorData(rawData)
+	fmt.Println(enriched)
+	// I want to send Post Request and save entity to adb
 }
 
 // temporary method
