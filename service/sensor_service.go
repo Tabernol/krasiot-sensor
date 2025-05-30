@@ -19,6 +19,10 @@ func EnrichSensorData(raw model.SensorData) model.EnrichedSensorData {
 }
 
 func classifySoilMoisture(adc int) (int, model.MoistureCategory) {
+	if adc < 0 {
+		return -1, model.MoistureSensorError
+	}
+
 	percent := toPercent(adc)
 
 	switch {

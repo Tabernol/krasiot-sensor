@@ -13,11 +13,12 @@ type SensorData struct {
 type MoistureCategory string
 
 const (
-	MoistureDry     MoistureCategory = "Dry"
-	MoistureLow     MoistureCategory = "Low Moisture"
-	MoistureOptimal MoistureCategory = "Optimal"
-	MoistureMoist   MoistureCategory = "Moist"
-	MoistureWet     MoistureCategory = "Wet"
+	MoistureDry         MoistureCategory = "Dry"
+	MoistureLow         MoistureCategory = "Low Moisture"
+	MoistureOptimal     MoistureCategory = "Optimal"
+	MoistureMoist       MoistureCategory = "Moist"
+	MoistureWet         MoistureCategory = "Wet"
+	MoistureSensorError MoistureCategory = "SensorError"
 )
 
 // EnrichedSensorData adds computed fields
