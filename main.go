@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/handler"
 	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"log"
-	"net/http"
 )
 
 func main() {
@@ -16,21 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ Failed to load MQTT config: %v", err)
 	}
-	//fmt.Println(cfg)
-
-	//adbCfg, err := repository.LoadDBConfig()
-	//if err != nil {
-	//	log.Fatalf("❌ Failed to load ADB config: %v", err)
-	//}
-	//fmt.Println("==================")
-	//fmt.Println(adbCfg.Username)
-	//fmt.Println("==================")
-
-	//oracleRepo, err := repository.NewOracleRepository("ADMIN", "Ironbike=3862", "https://G34BA1A39372B52-KRASIOT.adb.us-phoenix-1.oraclecloudapps.com/ords/apex")
-	//if err != nil {
-	//	log.Fatalf("❌ Failed to init Oracle repository: %v", err)
-	//}
-	//mqtt_broker.SetOracleRepository(oracleRepo)
+	fmt.Println(cfg)
 
 	subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
 	go subscriber.ConnectAndSubscribe()
