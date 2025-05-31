@@ -2,7 +2,7 @@ package model
 
 type SensorData struct {
 	TimestampUTC    string  `json:"timestamp_utc"`
-	DeviceID        string  `json:"device_id"`
+	HardwareUID     string  `json:"hardware_uid"`
 	IP              string  `json:"ip"`
 	FirmwareVersion string  `json:"firmware_version"`
 	ADCResolution   int     `json:"adc_resolution"`
@@ -24,7 +24,7 @@ const (
 // EnrichedSensorData adds computed fields
 type EnrichedSensorData struct {
 	TimestampUTC     string           `json:"timestamp_utc"`
-	DeviceID         string           `json:"device_id"`
+	HardwareUID      string           `json:"hardware_uid"`
 	IP               string           `json:"ip"`
 	FirmwareVersion  string           `json:"firmware_version"`
 	ADCResolution    int              `json:"adc_resolution"`

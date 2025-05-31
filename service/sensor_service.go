@@ -7,7 +7,7 @@ func EnrichSensorData(raw model.SensorData) model.EnrichedSensorData {
 
 	return model.EnrichedSensorData{
 		TimestampUTC:     raw.TimestampUTC,
-		DeviceID:         raw.DeviceID,
+		HardwareUID:      raw.HardwareUID,
 		IP:               raw.IP,
 		FirmwareVersion:  raw.FirmwareVersion,
 		ADCResolution:    raw.ADCResolution,
