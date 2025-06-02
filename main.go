@@ -2,11 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Tabernol/krasiot-sensor/handler"
 	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
-	"net/http"
-
-	"github.com/gorilla/mux"
 	"log"
 )
 
@@ -22,13 +18,13 @@ func main() {
 	subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
 	go subscriber.ConnectAndSubscribe()
 
-	router := mux.NewRouter()
-	moistureHandler := handler.NewMoistureHandler(subscriber)
-	router.HandleFunc("/krasiot/api/v1/sensors/moisture/latest", moistureHandler.GetLatestMoisture).Methods("GET")
-
-	log.Println("HTTP server starting on :8080")
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatalf("Failed to start HTTP server: %v", err)
-	}
+	//router := mux.NewRouter()
+	//moistureHandler := handler.NewMoistureHandler(subscriber)
+	//router.HandleFunc("/krasiot/api/v1/sensors/moisture/latest", moistureHandler.GetLatestMoisture).Methods("GET")
+	//
+	//log.Println("HTTP server starting on :8080")
+	//if err := http.ListenAndServe(":8080", router); err != nil {
+	//	log.Fatalf("Failed to start HTTP server: %v", err)
+	//}
 
 }
