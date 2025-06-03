@@ -6,7 +6,7 @@ func EnrichSensorData(raw model.SensorData) model.EnrichedSensorData {
 	percent, category := classifySoilMoisture(raw.SoilMoisture)
 
 	return model.EnrichedSensorData{
-		TimestampUTC:     raw.TimestampUTC,
+		MeasuredAtUTC:    raw.MeasuredAtUTC,
 		HardwareUID:      raw.HardwareUID,
 		IP:               raw.IP,
 		FirmwareVersion:  raw.FirmwareVersion,
