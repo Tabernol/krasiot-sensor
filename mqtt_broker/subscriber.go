@@ -1,15 +1,14 @@
 package mqtt_broker
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/Tabernol/krasiot-sensor/model"
+	"github.com/Tabernol/krasiot-sensor/oracledb"
 	sensor_service "github.com/Tabernol/krasiot-sensor/service"
 	"github.com/eclipse/paho.mqtt.golang"
 	"log"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -17,11 +16,12 @@ import (
 type MqttSubscriberService struct {
 	client        mqtt.Client
 	cfg           *MqttConfig
+	repo          *oracledb.SensorRepository
 	mu            sync.RWMutex
 	latestMessage []byte
 }
 
-func NewMqttSubscriberService(cfg *MqttConfig) *MqttSubscriberService {
+func NewMqttSubscriberService(cfg *MqttConfig, repo *oracledb.SensorRepository) *MqttSubscriberService {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
@@ -41,6 +41,7 @@ func NewMqttSubscriberService(cfg *MqttConfig) *MqttSubscriberService {
 	return &MqttSubscriberService{
 		client: client,
 		cfg:    cfg,
+		repo:   repo,
 	}
 }
 
@@ -80,35 +81,41 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 
 	enriched := sensor_service.EnrichSensorData(rawData)
 
-	// Encode the enriched data to JSON
-	jsonData, err := json.Marshal(enriched)
-	if err != nil {
-		log.Printf("❌ Failed to marshal enriched data: %v", err)
-		return
+	//// Encode the enriched data to JSON
+	//jsonData, err := json.Marshal(enriched)
+	//if err != nil {
+	//	log.Printf("❌ Failed to marshal enriched data: %v", err)
+	//	return
+	//}
+
+	if s.repo != nil {
+		if err := s.repo.InsertSensorData(enriched); err != nil {
+			log.Printf("❌ DB insert failed: %v", err)
+		}
 	}
 
-	// Send HTTP POST to ORDS endpoint
-	url := "https://g34ba1a39372b52-krasiot.adb.us-phoenix-1.oraclecloudapps.com/ords/admin/api/sensors"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		log.Printf("❌ Failed to create POST request: %v", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	clientHTTP := &http.Client{Timeout: 10 * time.Second}
-	resp, err := clientHTTP.Do(req)
-	if err != nil {
-		log.Printf("❌ HTTP POST request failed: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		log.Println("✅ Data posted successfully to ORDS")
-	} else {
-		log.Printf("❌ Failed to post data to ORDS. Status: %s", resp.Status)
-	}
+	//// Send HTTP POST to ORDS endpoint
+	//url := "https://g34ba1a39372b52-krasiot.adb.us-phoenix-1.oraclecloudapps.com/ords/admin/api/sensors"
+	//req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	//if err != nil {
+	//	log.Printf("❌ Failed to create POST request: %v", err)
+	//	return
+	//}
+	//req.Header.Set("Content-Type", "application/json")
+	//
+	//clientHTTP := &http.Client{Timeout: 10 * time.Second}
+	//resp, err := clientHTTP.Do(req)
+	//if err != nil {
+	//	log.Printf("❌ HTTP POST request failed: %v", err)
+	//	return
+	//}
+	//defer resp.Body.Close()
+	//
+	//if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+	//	log.Println("✅ Data posted successfully to ORDS")
+	//} else {
+	//	log.Printf("❌ Failed to post data to ORDS. Status: %s", resp.Status)
+	//}
 
 }
 

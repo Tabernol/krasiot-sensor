@@ -32,12 +32,12 @@ func main() {
 	fmt.Println("CONNECTED to ADB")
 	defer db.Close()
 
-	//repo := oracledb.NewOracleRepository(db)
-	//subscriber := mqtt_broker.NewMqttSubscriberService(cfg, repo)
-	//go subscriber.ConnectAndSubscribe()
-
-	subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
+	repo := oracledb.NewSensorRepository(db)
+	subscriber := mqtt_broker.NewMqttSubscriberService(cfg, repo)
 	go subscriber.ConnectAndSubscribe()
+
+	//subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
+	//go subscriber.ConnectAndSubscribe()
 
 	router := mux.NewRouter()
 	moistureHandler := handler.NewMoistureHandler(subscriber)
