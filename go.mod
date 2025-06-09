@@ -2,8 +2,6 @@ module github.com/Tabernol/krasiot-sensor
 
 go 1.23.0
 
-toolchain go1.23.9
-
 require (
 	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/godror/godror v0.48.3
