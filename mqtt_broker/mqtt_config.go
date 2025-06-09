@@ -22,10 +22,13 @@ func LoadMqttConfig() (*MqttConfig, error) {
 		log.Println(".env file not found, using environment variables")
 	}
 
-	// Parse env variables
-	port, err := strconv.Atoi(os.Getenv("MQTT_PORT"))
+	portStr := os.Getenv("MQTT_PORT")
+	if portStr == "" {
+		portStr = "8883" // default fallback
+	}
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Invalid MQTT_PORT: %v", err)
 	}
 
 	return &MqttConfig{
