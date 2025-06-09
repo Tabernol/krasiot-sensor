@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -17,12 +18,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ Failed to load MQTT config: %v", err)
 	}
-	fmt.Println(cfg)
+	fmt.Printf("Port from config %d \n", cfg.Port)
 
 	oracleCfg, err := oracledb.LoadOracleConfig()
 	if err != nil {
 		log.Fatalf("❌ Failed to load Oracle DB config: %v", err)
 	}
+
+	libDir := os.Getenv("ADB_LIB_DIR")
+	fmt.Printf("Lib dir location is %s \n", libDir)
 
 	db, err := oracledb.InitOracle(oracleCfg)
 	if err != nil {
