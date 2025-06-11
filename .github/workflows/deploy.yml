@@ -18,7 +18,7 @@ jobs:
           go-version: '1.22.12'
 
       - name: Archive source code
-          run: zip -r krasiot-sensor.zip . -x ".git/*"
+        run: zip -r krasiot-sensor.zip . -x ".git/*"
 
       - name: Copy source zip to VM
         uses: appleboy/scp-action@v0.1.7
