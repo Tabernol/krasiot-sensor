@@ -76,11 +76,18 @@ jobs:
             export ADB_LIB_DIR='${{ secrets.ADB_LIB_DIR }}'
             echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
             
-            rm -f ../app
-            go build -o ../app
+            echo "Starting build..."
+            go build -o ../app || { echo "Build failed"; exit 1; }
+            echo "Build succeeded."
+            
+            
             cd ..
+            ls -l app
+      
             chmod +x app
+            
             nohup ./app > app.log 2>&1 &
+            
             echo "✅ App started. Last 10 log lines:"
             sleep 3
             tail -n 10 app.log || echo "⚠️ Log file not found."
