@@ -1,91 +1,61 @@
-name: Deploy to VM
+name: Deploy to OCI VM
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Connect & Deploy to VM
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.12'
+
+      - name: Build Linux ARM64 binary
+        run: |
+          export GOOS=linux
+          export GOARCH=arm64
+          go build -o app
+          echo "✅ Binary built for Linux ARM64."
+
+      - name: Copy binary to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "app"
+          target: "~/krasiot-sensor"
+
+      - name: Restart app on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull tabernol/krasiot-sensor:latest
-
-            docker stop krasiot-sensor || true
-            docker rm krasiot-sensor || true
-
-            docker run -d \
-              --name krasiot-sensor \
-              -v /home/ubuntu/wallet:/opt/krasiot-sensor/wallet \
-              tabernol/krasiot-sensor:latest
-
-
-
-
-
-#name: Deploy to OCI VM
-#
-#on:
-#  push:
-#    branches: [main]
-#
-#jobs:
-#  deploy:
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Set up Go
-#        uses: actions/setup-go@v5
-#        with:
-#          go-version: '1.22.12'
-#
-#      - name: Build Linux ARM64 binary
-#        run: |
-#          export GOOS=linux
-#          export GOARCH=arm64
-#          go build -o app
-#          echo "✅ Binary built for Linux ARM64."
-#
-#      - name: Copy binary to VM
-#        uses: appleboy/scp-action@v0.1.7
-#        with:
-#          host: ${{ secrets.SSH_HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          source: "app"
-#          target: "~/krasiot-sensor"
-#
-#      - name: Restart app on VM
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.SSH_HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          script: |
-#            pkill app || true
-#            cd ~/krasiot-sensor
-#            chmod +x app
-#            export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}'
-#            export AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}'
-#            export MQTT_HOST='${{ vars.MQTT_HOST }}'
-#            export MQTT_PORT='${{ vars.MQTT_PORT }}'
-#            export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
-#            export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
-#            export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
-#            export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
-#            echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
-#            nohup ./app > app.log 2>&1 &
-#            echo "✅ App started. Last 10 log lines:"
-#            sleep 3
-#            tail -n 10 app.log || echo "⚠️ Log file not found."
+            pkill app || true
+            cd ~/krasiot-sensor
+            chmod +x app
+            export MQTT_HOST='${{ vars.MQTT_HOST }}'
+            export MQTT_PORT='${{ vars.MQTT_PORT }}'
+            export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
+            export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
+            export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
+            export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
+            export ADB_USERNAME='${{ secrets.ADB_USERNAME }}'
+            export ADB_PASSWORD='${{ secrets.ADB_PASSWORD }}'
+            export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
+            export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
+            export ADB_LIB_DIR='${{ secrets.ADB_LIB_DIR }}'
+            echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
+            nohup ./app > app.log 2>&1 &
+            echo "✅ App started. Last 10 log lines:"
+            sleep 3
+            tail -n 10 app.log || echo "⚠️ Log file not found."
