@@ -29,6 +29,24 @@ jobs:
           source: "krasiot-sensor.zip"
           target: "~/krasiot-sensor"
 
+
+
+#      - name: Build Linux ARM64 binary
+#        run: |
+#          export GOOS=linux
+#          export GOARCH=arm64
+#          go build -o app
+#          echo "✅ Binary built for Linux ARM64."
+
+#      - name: Copy binary to VM
+#        uses: appleboy/scp-action@v0.1.7
+#        with:
+#          host: ${{ secrets.SSH_HOST }}
+#          username: ${{ secrets.SSH_USER }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "app"
+#          target: "~/krasiot-sensor"
+
       - name: Restart app on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -56,7 +74,6 @@ jobs:
             export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
             export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
             export ADB_LIB_DIR='${{ secrets.ADB_LIB_DIR }}'
-#            export ADB_LIB_DIR='/opt/oracle/instantclient_19_10'
             export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
             echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
             
