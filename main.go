@@ -40,9 +40,6 @@ func main() {
 	subscriber := mqtt_broker.NewMqttSubscriberService(cfg, repo)
 	go subscriber.ConnectAndSubscribe()
 
-	//subscriber := mqtt_broker.NewMqttSubscriberService(cfg)
-	//go subscriber.ConnectAndSubscribe()
-
 	router := mux.NewRouter()
 	moistureHandler := handler.NewMoistureHandler(subscriber)
 	router.HandleFunc("/krasiot/api/v1/sensors/moisture/latest", moistureHandler.GetLatestMoisture).Methods("GET")
