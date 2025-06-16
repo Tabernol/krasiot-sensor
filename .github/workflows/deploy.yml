@@ -36,7 +36,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            pkill app || true
+            pkill -f krasiot-sensor || true
             cd ~/krasiot-sensor
             rm -rf src || true
             unzip -o krasiot-sensor.zip -d src
@@ -60,15 +60,15 @@ jobs:
             echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
             
             echo "Starting build..."
-            go build -o ../app || { echo "Build failed"; exit 1; }
+            go build -o ../krasiot-sensor || { echo "Build failed"; exit 1; }
             echo "Build succeeded."
             
             cd ..
             ls -l app
       
-            chmod +x app
+            chmod +x krasiot-sensor
             
-            nohup ./app > app.log 2>&1 &
+            nohup ./krasiot-sensor > sensor.log 2>&1 &
             
             echo "✅ App started. Last 10 log lines:"
             sleep 3
