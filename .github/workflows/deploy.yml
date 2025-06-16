@@ -63,7 +63,6 @@ jobs:
             go build -o ../app || { echo "Build failed"; exit 1; }
             echo "Build succeeded."
             
-            
             cd ..
             ls -l app
       
