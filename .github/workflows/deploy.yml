@@ -64,7 +64,7 @@ jobs:
             echo "Build succeeded."
             
             cd ..
-            ls -l app
+            ls -l krasiot-sensor
       
             chmod +x krasiot-sensor
             
@@ -72,4 +72,4 @@ jobs:
             
             echo "✅ App started. Last 10 log lines:"
             sleep 3
-            tail -n 10 app.log || echo "⚠️ Log file not found."
+            tail -n 10 sensor.log || echo "⚠️ Log file not found."
