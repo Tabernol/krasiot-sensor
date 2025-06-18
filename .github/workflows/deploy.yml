@@ -36,7 +36,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Kill any running instance
             pkill -f krasiot-sensor || true
 #            ps aux | grep '[k]rasiot-sensor' | awk '{print $2}' | xargs -r kill || true
 
