@@ -32,50 +32,49 @@ jobs:
       - name: Restart app on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            pkill -f krasiot-sensor || true
-#            ps aux | grep '[k]rasiot-sensor' | awk '{print $2}' | xargs -r kill || true
-
-            cd ~/krasiot-sensor
-            rm -rf src || true
-            unzip -o krasiot-sensor.zip -d src
-            rm -f krasiot-sensor   # clean up previous binary if any
-            cd src
-            
-            # Set env vars
-            export GOOS=linux
-            export GOARCH=arm64
-            
-            export MQTT_HOST='${{ vars.MQTT_HOST }}'
-            export MQTT_PORT='${{ vars.MQTT_PORT }}'
-            export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
-            export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
-            export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
-            export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
-            export ADB_USERNAME='${{ secrets.ADB_USERNAME }}'
-            export ADB_PASSWORD='${{ secrets.ADB_PASSWORD }}'
-            export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
-            export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
-            export ADB_LIB_DIR='/usr/lib/oracle/19.23/client64/lib'
-            export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
-            
-            echo "Starting build..."
-            if ! go build -o ../krasiot-sensor; then
-              echo "❌ Build failed"
-              exit 1
-            fi
-            
-            echo "✅ Build succeeded"
-            cd ..
-            chmod +x krasiot-sensor
-            
-            nohup ./krasiot-sensor > sensor.log 2>&1 &
-            echo "✅ App started. Last 10 log lines:"
-            sleep 3
-            tail -n 10 sensor.log || echo "⚠️ Log file not found."
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            script: |
+              pkill -f krasiot-sensor || true
+              
+              cd ~/krasiot-sensor
+              rm -rf src || true
+              unzip -o krasiot-sensor.zip -d src
+              rm -f krasiot-sensor   # clean up previous binary if any
+              cd src
+              
+              # Set env vars
+              export GOOS=linux
+              export GOARCH=arm64
+              
+              export MQTT_HOST='${{ vars.MQTT_HOST }}'
+              export MQTT_PORT='${{ vars.MQTT_PORT }}'
+              export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
+              export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
+              export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
+              export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
+              export ADB_USERNAME='${{ secrets.ADB_USERNAME }}'
+              export ADB_PASSWORD='${{ secrets.ADB_PASSWORD }}'
+              export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
+              export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
+              export ADB_LIB_DIR='/usr/lib/oracle/19.23/client64/lib'
+              export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
+              
+              echo "Starting build..."
+              if ! go build -o ../krasiot-sensor; then
+                echo "❌ Build failed"
+                exit 1
+              fi
+              
+              echo "✅ Build succeeded"
+              cd ..
+              chmod +x krasiot-sensor
+              
+              nohup ./krasiot-sensor > sensor.log 2>&1 &
+              echo "✅ App started. Last 10 log lines:"
+              sleep 3
+              tail -n 10 sensor.log || echo "⚠️ Log file not found."
 #            pkill -f krasiot-sensor || true
 #            cd ~/krasiot-sensor
 #            rm -rf src || true
