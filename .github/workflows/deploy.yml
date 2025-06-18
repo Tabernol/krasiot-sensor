@@ -29,13 +29,13 @@ jobs:
           source: "krasiot-sensor.zip"
           target: "~/krasiot-sensor"
 
-      - name: Restart app on VM
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            script: |
+       - name: Restart app on VM
+         uses: appleboy/ssh-action@v1.0.3
+         with:
+           host: ${{ secrets.SSH_HOST }}
+           username: ${{ secrets.SSH_USER }}
+           key: ${{ secrets.SSH_PRIVATE_KEY }}
+           script: |
               pkill -f krasiot-sensor || true
               
               cd ~/krasiot-sensor
