@@ -59,6 +59,7 @@ jobs:
             export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
             export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
             export ADB_LIB_DIR='/usr/lib/oracle/19.23/client64/lib'
+            export AWS_SQS_S_N_URL='${{ secrets.AWS_SQS_S_N_URL }}'
             export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
               
             echo "Starting build..."
