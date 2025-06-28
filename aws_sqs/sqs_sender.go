@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"log"
+	"os"
 
 	"github.com/Tabernol/krasiot-sensor/model"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -19,7 +20,7 @@ type SqsNotifier struct {
 
 func NewSqsNotifier(ctx context.Context, queueURL string) *SqsNotifier {
 	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion("us-west-2"),
+		config.WithRegion(os.Getenv("AWS_REGION")),
 	)
 	if err != nil {
 		log.Fatalf("❌ Failed to load AWS config: %v", err)
