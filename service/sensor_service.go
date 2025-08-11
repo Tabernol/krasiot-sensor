@@ -3,7 +3,7 @@ package sensor_service
 import "github.com/Tabernol/krasiot-sensor/model"
 
 func EnrichSensorData(raw model.SensorData) model.EnrichedSensorData {
-	percent, category := classifySoilMoisture(raw.SoilMoisture)
+	percent, category := classifySoilMoisture(raw.ADCResolution, raw.SoilMoisture)
 
 	return model.EnrichedSensorData{
 		MeasuredAtUTC:    raw.MeasuredAtUTC,
@@ -18,12 +18,12 @@ func EnrichSensorData(raw model.SensorData) model.EnrichedSensorData {
 	}
 }
 
-func classifySoilMoisture(adc int) (int, model.MoistureCategory) {
+func classifySoilMoisture(adc int, raw int) (int, model.MoistureCategory) {
 	if adc < 0 {
 		return -1, model.MoistureSensorError
 	}
 
-	percent := toPercent(adc)
+	percent := toPercent(adc, raw)
 
 	switch {
 	case percent >= 80:
@@ -40,20 +40,52 @@ func classifySoilMoisture(adc int) (int, model.MoistureCategory) {
 }
 
 const (
-	adcWet = 5300 // ADC value in water
-	adcDry = 8000 // ADC value in dry air
+	adcWet13 = 5300 // ADC 13 value in water
+	adcDry13 = 8000 // ADC 13 value in dry air
+	adcWet12 = 1600 // ADC 12 value in water
+	adcDry12 = 3300 // ADC 12 value in dry air
 )
 
-func toPercent(adc int) int {
-	if adc <= adcWet {
+func toPercent(adc int, raw int) int {
+	if adc == 12 {
+		return calc12(raw)
+	}
+	if adc == 13 {
+		return calc13(raw)
+	}
+	return -1
+}
+
+func calc13(raw int) int {
+	if raw <= adcWet13 {
 		return 100
 	}
-	if adc >= adcDry {
+	if raw >= adcDry13 {
 		return 0
 	}
 
 	// Linear mapping from [adcWet, adcDry] to [100, 0]
-	p := 100 - int(float64(adc-adcWet)/float64(adcDry-adcWet)*100)
+	p := 100 - int(float64(raw-adcWet13)/float64(adcDry13-adcWet13)*100)
+
+	if p < 0 {
+		return 0
+	}
+	if p > 100 {
+		return 100
+	}
+	return p
+}
+
+func calc12(raw int) int {
+	if raw <= adcWet12 {
+		return 100
+	}
+	if raw >= adcDry12 {
+		return 0
+	}
+
+	// Linear mapping from [adcWet, adcDry] to [100, 0]
+	p := 100 - int(float64(raw-adcWet12)/float64(adcDry12-adcWet12)*100)
 
 	if p < 0 {
 		return 0
