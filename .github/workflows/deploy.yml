@@ -12,11 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-#      - name: Set up Go
-#        uses: actions/setup-go@v5
-#        with:
-#          go-version: '1.22.12'
-
       - name: Archive source code
         run: zip -r krasiot-sensor.zip . -x ".git/*"
 
@@ -59,6 +54,10 @@ jobs:
             export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
             export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
             export ADB_LIB_DIR='/usr/lib/oracle/19.23/client64/lib'
+            export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}'
+            export AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+            export AWS_REGION='${{ secrets.AWS_REGION }}'
+            export AWS_SQS_S_N_URL='${{ secrets.AWS_SQS_S_N_URL }}'
             export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
               
             echo "Starting build..."
@@ -75,40 +74,3 @@ jobs:
             echo "✅ App started. Last 10 log lines:"
             sleep 3
             tail -n 10 sensor.log || echo "⚠️ Log file not found."
-#            pkill -f krasiot-sensor || true
-#            cd ~/krasiot-sensor
-#            rm -rf src || true
-#            unzip -o krasiot-sensor.zip -d src
-#            cd src
-#
-#            export GOOS=linux
-#            export GOARCH=arm64
-#
-#            export MQTT_HOST='${{ vars.MQTT_HOST }}'
-#            export MQTT_PORT='${{ vars.MQTT_PORT }}'
-#            export MQTT_USERNAME='${{ secrets.MQTT_USERNAME }}'
-#            export MQTT_PASSWORD='${{ secrets.MQTT_PASSWORD }}'
-#            export MQTT_CLIENT_ID='${{ vars.MQTT_CLIENT_ID }}'
-#            export MQTT_TOPIC='${{ vars.MQTT_TOPIC }}'
-#            export ADB_USERNAME='${{ secrets.ADB_USERNAME }}'
-#            export ADB_PASSWORD='${{ secrets.ADB_PASSWORD }}'
-#            export ADB_CONN_STRING='${{ secrets.ADB_CONN_STRING }}'
-#            export ADB_WALLET_LOCATION='${{ secrets.ADB_WALLET_LOCATION }}'
-#            export ADB_LIB_DIR='/usr/lib/oracle/19.23/client64/lib'
-#            export LD_LIBRARY_PATH="$ADB_LIB_DIR:$LD_LIBRARY_PATH"
-#            echo "MQTT_PORT=$MQTT_PORT"         # 👈 Add this debug output
-#
-#            echo "Starting build..."
-#            go build -o ../krasiot-sensor || { echo "Build failed"; exit 1; }
-#            echo "Build succeeded."
-#
-#            cd ..
-#            ls -l krasiot-sensor
-#
-#            chmod +x krasiot-sensor
-#
-#            nohup ./krasiot-sensor > sensor.log 2>&1 &
-#
-#            echo "✅ App started. Last 10 log lines:"
-#            sleep 3
-#            tail -n 10 sensor.log || echo "⚠️ Log file not found."
