@@ -1,4 +1,4 @@
-name: Deploy to OCI VM
+name: Deploy to OCI VM A1.Flex
 
 on:
   push:

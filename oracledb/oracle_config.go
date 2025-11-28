@@ -15,7 +15,7 @@ type OracleConfig struct {
 }
 
 func LoadOracleConfig() (OracleConfig, error) {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("../secrets/.env"); err != nil {
 		log.Println("Using system env vars (no .env file found)")
 	}
 	return OracleConfig{

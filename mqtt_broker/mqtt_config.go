@@ -18,7 +18,7 @@ type MqttConfig struct {
 
 func LoadMqttConfig() (*MqttConfig, error) {
 	// Load from .env file if it exists
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("../secrets/.env"); err != nil {
 		log.Println(".env file not found, using environment variables")
 	}
 

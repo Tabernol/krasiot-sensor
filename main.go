@@ -16,10 +16,6 @@ import (
 func main() {
 	fmt.Println("Starting Krasiot Sensor Subscriber...")
 
-	// check location of oracle instant lib
-	libDir := os.Getenv("ADB_LIB_DIR")
-	fmt.Printf("Lib dir location is %s \n", libDir)
-
 	// load and create configuration for MQTT
 	cfg, err := mqtt_broker.LoadMqttConfig()
 	if err != nil {
