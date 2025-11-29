@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/Tabernol/krasiot-sensor/aws_sqs"
 	"github.com/Tabernol/krasiot-sensor/handler"
 	"github.com/Tabernol/krasiot-sensor/mqtt_broker"
 	"github.com/Tabernol/krasiot-sensor/oracledb"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -38,15 +35,8 @@ func main() {
 	defer db.Close()
 	repo := oracledb.NewSensorRepository(db)
 
-	// load configuration for SQS
-	queueURL := os.Getenv("AWS_SQS_S_N_URL")
-	if queueURL == "" {
-		log.Fatal("❌ Environment variable AWS_SQS_S_N_URL is not set")
-	}
-	sqsNotifier := aws_sqs.NewSqsNotifier(context.Background(), queueURL)
-
-	// create subscriber with all components
-	subscriber := mqtt_broker.NewMqttSubscriberService(cfg, repo, sqsNotifier)
+	// Create subscriber with DB repository only (no SQS)
+	subscriber := mqtt_broker.NewMqttSubscriberService(cfg, repo)
 	go subscriber.ConnectAndSubscribe()
 
 	// temporary endpoint

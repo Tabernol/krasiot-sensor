@@ -1,11 +1,9 @@
 package mqtt_broker
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/Tabernol/krasiot-sensor/aws_sqs"
 	"github.com/Tabernol/krasiot-sensor/model"
 	"github.com/Tabernol/krasiot-sensor/oracledb"
 	sensor_service "github.com/Tabernol/krasiot-sensor/service"
@@ -19,12 +17,11 @@ type MqttSubscriberService struct {
 	client        mqtt.Client
 	cfg           *MqttConfig
 	repo          *oracledb.SensorRepository
-	notifier      *aws_sqs.SqsNotifier
 	mu            sync.RWMutex
 	latestMessage []byte
 }
 
-func NewMqttSubscriberService(cfg *MqttConfig, repo *oracledb.SensorRepository, notifier *aws_sqs.SqsNotifier) *MqttSubscriberService {
+func NewMqttSubscriberService(cfg *MqttConfig, repo *oracledb.SensorRepository) *MqttSubscriberService {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
@@ -42,10 +39,9 @@ func NewMqttSubscriberService(cfg *MqttConfig, repo *oracledb.SensorRepository, 
 	client := mqtt.NewClient(opts)
 
 	return &MqttSubscriberService{
-		client:   client,
-		cfg:      cfg,
-		repo:     repo,
-		notifier: notifier,
+		client: client,
+		cfg:    cfg,
+		repo:   repo,
 	}
 }
 
@@ -71,11 +67,13 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 	payload := msg.Payload()
 	log.Printf("📥 Received message: %s -> %s", msg.Topic(), string(payload))
 
+	// Store for /latest endpoint
 	s.mu.Lock()
 	s.latestMessage = make([]byte, len(payload))
 	copy(s.latestMessage, payload)
 	s.mu.Unlock()
 
+	// Unmarshal raw sensor data
 	var rawData model.SensorData
 	err := json.Unmarshal(payload, &rawData)
 	if err != nil {
@@ -83,21 +81,16 @@ func (s *MqttSubscriberService) handleMessage(client mqtt.Client, msg mqtt.Messa
 		return
 	}
 
+	// Enrich data (calculate moisture percentage)
 	enriched := sensor_service.EnrichSensorData(rawData)
 
+	// Save to DB (single source of truth)
 	if s.repo != nil {
 		if err := s.repo.InsertSensorData(enriched); err != nil {
 			log.Printf("❌ DB insert failed: %v", err)
+			return
 		}
-	}
-
-	if s.notifier != nil {
-		err := s.notifier.SendEnrichedSensorData(context.Background(), enriched)
-		if err != nil {
-			log.Printf("❌ Failed to send to SQS: %v", err)
-		} else {
-			log.Printf("📤 Sent message to SQS queue")
-		}
+		log.Printf("✅ Sensor data inserted: %s [%s]", enriched.HardwareUID, enriched.MoistureCategory)
 	}
 }
 

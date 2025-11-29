@@ -28,11 +28,12 @@
 
 **Services (microservices)**
 - `krasiot-sensor` (Go) — **running (MVP)**
-  - Subscribes to MQTT (HiveMQ), enriches readings, saves to Oracle Autonomous DB (ADB), forwards events to AWS SQS.
+  - Subscribes to MQTT (HiveMQ), enriches readings (calculates moisture percentage and category), and persists to Oracle Autonomous DB (ADB).
   - Exposes **GET** `/latest` on port **8080** for the most recent message (test endpoint).
+  - **Responsibility:** Data ingestion and persistence only. Does not handle notifications.
 - `krasiot-notifier` (Go) — **running (MVP)**
-  - Consumes messages from AWS SQS, checks latest sent notification in DB, sends email if changes are important.
-  - Connected to ADB for state checks.
+  - Polls `sensor_raw` table in ADB, applies notification rules, sends emails.
+  - **Responsibility:** Notification logic and email delivery.
 - `krasiot-ui` (TypeScript/React) — **planned**
   - Dashboard for latest readings, device list, alert history, basic settings.
 - `krasiot-auth` (Java/Spring Boot) — **planned**
@@ -43,7 +44,6 @@
 - Cloud:
   - **OCI** VM `Standard.A1.Flex` (ARM) for running Go services.
   - **Oracle Autonomous DB** (ADB) for storage (connected via **godror**, Wallet, Instant Client `19.23`).
-  - **AWS SQS** for event queueing (notifications pipeline).
   - **HiveMQ** (MQTT broker) for ingest.
 
 **Runtime Versions on VM**
@@ -61,26 +61,22 @@
                               v
                         [krasiot-sensor]
                    (subscribe, enrich, persist)
-                      |                 |
-                      | (godror)        | (SQS send)
-                      v                 v
-                  [Oracle ADB] <---- [AWS SQS]
-                                          |
-                                          v
-                                  [krasiot-notifier]
-                                    (dedupe + rules)
-                                          |
-                                          v
-                                    [Email Sender]
+                              |
+                              | (godror)
+                              v
+                        [Oracle ADB]
+                      (sensor_raw table)
+
+Note: krasiot-notifier (separate service) polls sensor_raw table independently
 
 Optional / Next: [krasiot-ui] (React) -> read APIs -> ADB (via service) / alerts
                  [krasiot-auth] (JWT) -> protect APIs/UI
 ```
 
-**Data Flow (today)**
+**Data Flow (krasiot-sensor scope)**
 1. Device publishes reading every **5 minutes** to HiveMQ.
-2. `krasiot-sensor` subscribes, normalizes/enriches, **persists to ADB**, and **pushes to SQS**.
-3. `krasiot-notifier` consumes SQS, checks last notification in ADB, and sends an email when rules trigger.
+2. `krasiot-sensor` subscribes to MQTT topic, normalizes/enriches data (calculates moisture %), and **persists to ADB** (`sensor_raw` table).
+3. `krasiot-sensor` is stateless and does not know about downstream consumers (notifier, UI, analytics, etc.).
 
 ---
 
@@ -101,24 +97,7 @@ Optional / Next: [krasiot-ui] (React) -> read APIs -> ADB (via service) / alerts
 }
 ```
 
-### 4.3 Enriched Event (JSON) — Outbound to SQS (Proposed)
-```json
-{
-  "event_id": "7f2c7c20-1c7f-4ff0-9c2f-3a6a2ec8b1b9",
-  "hardware_uid": "esp32abcd",
-  "ts_ms": 1725600000000,
-  "soil_moisture_raw": 612,
-  "soil_moisture_category": "DRY",  
-  "temperature_c": 22.4,
-  "humidity_pct": 54.2,
-  "ingest_src": "mqtt/hivemq",
-  "ingest_seq": 145903,
-  "env": "prod"
-}
-```
-> `soil_moisture_category` thresholds to be configured per device/profile.
-
-### 4.4 REST — `krasiot-sensor` Test Endpoint
+### 4.3 REST — `krasiot-sensor` Test Endpoint
 - `GET /latest` (port 8080)
   - 200 OK example:
 ```json
@@ -134,53 +113,42 @@ Optional / Next: [krasiot-ui] (React) -> read APIs -> ADB (via service) / alerts
 
 ---
 
-## 5) Notification Logic (Current/Planned)
+## 5) Notification Logic
 
-**Business Rules (target)**
-- Send a notification **if**:
-  1) **No previous** notification exists for the `hardware_uid`, **or**
-  2) `soil_moisture_category` **changed** and **≥ 30 minutes** have passed since the last notification, **or**
-  3) `soil_moisture_category` **unchanged** but **≥ 24 hours** have passed since the last notification.
-
-**Email Content (MVP)**
-- Subject: `krasiot alert — {hardware_uid} — {soil_moisture_category}`
-- Body: short status summary + last reading + link to dashboard (future).
-
-**Delivery**
-- SMTP or AWS SES (TBD). Retry with backoff. Store send outcome in ADB.
+> **Note:** Notification logic is handled by `krasiot-notifier` service, not by `krasiot-sensor`.
+> `krasiot-sensor` only persists data to `sensor_raw` table. See `krasiot-notifier` documentation for notification rules and email delivery details.
 
 ---
 
-## 6) Storage Model (Proposed, ADB)
+## 6) Storage Model (krasiot-sensor scope)
 
-**Tables**
-- `readings` — immutable time‑series
-  - (`id` PK, `hardware_uid`, `ts`, `soil_moisture_raw`, `soil_moisture_category`, `temperature_c`, `humidity_pct`, `ingest_src`, `ingest_seq`, `env`)
-- `alerts` — sent notifications
-  - (`id` PK, `hardware_uid`, `ts`, `category`, `subject`, `status`, `meta_json`)
-- `devices` — device metadata/config
-  - (`hardware_uid` PK, `name`, `owner_id`, `thresholds_json`, `created_at`, `status`)
+**Tables used by krasiot-sensor**
+- `sensor_raw` — immutable time‑series (INSERT only)
+  - Contains: `id`, `hardware_uid`, `measured_at_utc`, `ip`, `firmware_version`, `adc_resolution`, `battery_voltage`, `soil_moisture`, `moisture_percent`, `moisture_category`
+  - **Responsibility:** krasiot-sensor writes; other services read
+
+**Other tables** (managed by other services)
+- `device_alert` — notification history (managed by krasiot-notifier)
+- `device` — device metadata/config (future)
 
 **Indexes**
-- `readings(hardware_uid, ts)`
-- `alerts(hardware_uid, ts)`
+- `sensor_raw(hardware_uid, measured_at_utc)` — for queries by device and time range
 
 **Retention (Proposed)**
-- Raw readings: 180–365 days (TBD).
-- Alerts: 365+ days (TBD).
+- Raw sensor readings: 180–365 days (TBD).
 
 ---
 
 ## 7) Configuration & Secrets
 
-**Environment variables (examples)**
-- MQTT: `MQTT_BROKER_URI`, `MQTT_USER`, `MQTT_PASS`, `MQTT_TOPIC`
+**Environment variables (krasiot-sensor)**
+- MQTT: `MQTT_BROKER_URI`, `MQTT_USER`, `MQTT_PASS`, `MQTT_TOPIC`, `MQTT_CLIENT_ID`
 - DB: `DB_USER`, `DB_PASS`, `DB_WALLET_DIR`, `DB_CONNECT_STR`
-- SQS: `AWS_REGION`, `SQS_QUEUE_URL`
-- Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (or SES params)
-- App: `ENV`, `LOG_LEVEL`, `NOTIFY_COOLDOWN_MIN=30`, `NOTIFY_DAILY_HEARTBEAT_H=24`
+- App: `ENV`, `LOG_LEVEL`
 
-**Secrets handling**: GitHub Actions Secrets; consider OCI Vault/AWS Secrets Manager later.
+**Secrets handling**: GitHub Actions Secrets; consider OCI Vault later.
+
+> **Note:** Email and notification configs are handled by `krasiot-notifier` service.
 
 ---
 
@@ -196,12 +164,19 @@ Optional / Next: [krasiot-ui] (React) -> read APIs -> ADB (via service) / alerts
 
 ---
 
-## 9) Observability
+## 9) Observability (krasiot-sensor)
 
-- Logging: structured logs to STDOUT + file (rotation).
-- Metrics (Proposed): Expose Prometheus endpoint for sensor/queue DB metrics.
-- Dashboards (Proposed): Grafana (self‑hosted or managed) for key graphs.
-- Alerts (Proposed): On dead letter rate, DB errors, MQTT disconnects.
+**Current:**
+- Logging: Structured logs to STDOUT (MQTT messages received, DB insert success/failure).
+
+**Proposed:**
+- Metrics: Expose Prometheus endpoint for:
+  - `mqtt_messages_received_total` (counter)
+  - `db_inserts_total{status="success|failure"}` (counter)
+  - `db_insert_duration_seconds` (histogram)
+  - `mqtt_connection_status` (gauge)
+- Dashboards: Grafana dashboard showing message ingestion rate, DB insert latency.
+- Alerts: On MQTT disconnects, DB connection failures, high insert error rate (>5%).
 
 ---
 
@@ -209,43 +184,48 @@ Optional / Next: [krasiot-ui] (React) -> read APIs -> ADB (via service) / alerts
 
 - Use Oracle Wallet for ADB (already in place).
 - Restrict inbound ports on OCI VM; only required HTTP ports exposed.
-- Rotate credentials; least‑privilege AWS IAM for SQS consumer.
+- Rotate MQTT and DB credentials regularly.
 - JWT‑based auth via `krasiot-auth` (future) for UI/API.
 
 ---
 
 ## 11) Roadmap (Next 4–6 Weeks)
 
-1. **Stabilize ingestion**: backpressure, retry policies, idempotency keys.
-2. **Notifier rules**: finalize thresholds & schedules; implement daily heartbeat.
-3. **CI/CD**: move builds to GitHub Actions (ARM64), produce signed artifacts.
-4. **Packaging**: systemd units or Docker; env‑file based config.
-5. **UI MVP**: latest reading per device, alert list, simple chart (24h).
-6. **Auth MVP**: single‑tenant JWT + password login.
-7. **Docs**: runbooks (on‑call), infra as code (Terraform — minimal).
+**krasiot-sensor specific:**
+1. **Stabilize ingestion**: Add retry logic for DB inserts, handle MQTT reconnection gracefully.
+2. **Monitoring**: Add Prometheus metrics (messages received, DB insert success/failure rate).
+3. **CI/CD**: Move builds to GitHub Actions (ARM64), produce signed artifacts.
+4. **Packaging**: Systemd unit with auto-restart, env-file based config.
+5. **Testing**: Add integration tests for MQTT → DB flow.
+
+**Other services:**
+- Notifier rules → see `krasiot-notifier` roadmap
+- UI MVP → see `krasiot-ui` roadmap
+- Auth MVP → see `krasiot-auth` roadmap
 
 ---
 
 ## 12) Open Questions (Need Input)
 
+**krasiot-sensor specific:**
 - Exact MQTT topic(s) and payload from the **prebuilt** prototype (fields, units)?
 - Final thresholds for `soil_moisture_category` by device or global?
-- Email provider choice (SMTP vs SES) and sender domain?
-- AWS region & SQS queue names/URLs used in prod?
 - ADB schema names and any constraints already created?
-- Desired data retention window (raw vs. aggregated)?
-- Are temperature/humidity required for notifications or only moisture?
-- Will UI be read‑only initially, or include device threshold editing?
+- Desired data retention window for `sensor_raw` table?
 - Device provisioning: how to register/approve new `hardware_uid`?
+
+**Other services:**
+- Email/notification questions → see `krasiot-notifier` docs
+- UI questions → see `krasiot-ui` docs
 
 ---
 
 ## 13) Glossary
 
 - **ADB**: Oracle Autonomous Database.
-- **HiveMQ**: Managed MQTT broker.
+- **HiveMQ**: Managed MQTT broker (cloud-hosted).
 - **MQTT**: Lightweight pub/sub protocol for IoT.
-- **SQS**: AWS Simple Queue Service.
+- **Enrichment**: Process of calculating moisture percentage and category from raw ADC values.
 
 ---
 
@@ -268,12 +248,13 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-### B. Basic Health Checklist
+### B. Basic Health Checklist (krasiot-sensor)
 - [ ] VM has Oracle Instant Client `19.23` & Wallet configured
-- [ ] `krasiot-sensor` connected to MQTT and ADB, can write `readings`
-- [ ] SQS messages produced per reading
-- [ ] `krasiot-notifier` consumes SQS, writes to `alerts`, sends email
-- [ ] `/latest` returns the most recent enriched reading
+- [ ] `krasiot-sensor` connected to MQTT broker (HiveMQ)
+- [ ] `krasiot-sensor` connected to Oracle ADB
+- [ ] `krasiot-sensor` can write to `sensor_raw` table
+- [ ] `/latest` endpoint returns the most recent enriched reading
+- [ ] Logs show successful MQTT message reception and DB inserts
 
 ---
 
